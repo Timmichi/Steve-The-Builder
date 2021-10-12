@@ -3,14 +3,14 @@ layout: default
 title:  Team
 ---
 
-# {{ page.title }}
+# Steve-The-Builder
 
 
-## USER 1
-***UCI Net ID***: ucinetid1
+## Timothy Simanhadi
+TSIMANHA
 
-## USER 2
-***UCI Net ID***: ucinetid2
+## Raymond Anggono
+RANGGONO
 
-## USER 3
-***UCI Net ID***: ucinetid3
+## Nikola Pratte
+NPRATTE
