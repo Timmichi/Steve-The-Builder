@@ -121,7 +121,14 @@ class DiamondCollector(gym.Env):
 
         return self.obs, reward, done, dict()
 
+    def get_enemy_xml(self, x, y, z) -> str:
+        # for mob types, see:
+        # https://microsoft.github.io/malmo/0.30.0/Schemas/Types.html#type_EntityTypes
+        mob_type = "Ghast"
+        return f"<DrawEntity x='{x}' y='{y}' z='{z}' type='{mob_type}'/>"
+
     def get_mission_xml(self):
+        enemy_starting_location = (3, 1, 3)
         return '''<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
                 <Mission xmlns="http://ProjectMalmo.microsoft.com" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
@@ -142,6 +149,7 @@ class DiamondCollector(gym.Env):
                             <DrawingDecorator>''' + \
                                 "<DrawCuboid x1='{}' x2='{}' y1='2' y2='2' z1='{}' z2='{}' type='air'/>".format(-self.size, self.size, -self.size, self.size) + \
                                 "<DrawCuboid x1='{}' x2='{}' y1='1' y2='1' z1='{}' z2='{}' type='stone'/>".format(-self.size, self.size, -self.size, self.size) + \
+                                f"{self.get_enemy_xml(*enemy_starting_location)}" + \
                                 '''<DrawBlock x='0'  y='2' z='0' type='air' />
                                 <DrawBlock x='0'  y='1' z='0' type='stone' />
                             </DrawingDecorator>
@@ -154,7 +162,6 @@ class DiamondCollector(gym.Env):
                         <AgentStart>
                             <Placement x="0.5" y="2" z="0.5" pitch="45" yaw="0"/>
                             <Inventory>
-                                <InventoryItem slot="0" type="diamond_pickaxe"/>
                             </Inventory>
                         </AgentStart>
                         <AgentHandlers>
