@@ -30,10 +30,10 @@ class DiamondCollector(gym.Env):
 
         # TODO issue: seems like agent is not really looking up or down, and perhaps turn degree not significant enough, or should have more options (like two turn options, 15 and 90 degrees). Issue may be related to post-processing, where yaw or pitch is being reset.
         self.action_dict = {
-            0: 'turn 0.33',  # Turn 30 degrees to the right.
-            1: 'turn -0.33',  # Turn 30 degrees to the left.
-            2: 'pitch 0.33', # Pitch 30 degrees up.
-            3: 'pitch -0.33', # Pitch 30 degrees down.
+            0: 'turn 1',  # Turn 90 degrees to the right.
+            1: 'turn -1',  # Turn 90 degrees to the left.
+            2: 'look 1', # Pitch 45 degrees down.
+            3: 'look -1', # Pitch 45 degrees up.
             4: 'use' # Place a block.
         }
         
@@ -56,7 +56,6 @@ class DiamondCollector(gym.Env):
 
         # DiamondCollector Parameters
         self.obs = None
-        self.allow_break_action = False
         self.episode_step = 0
         self.episode_return = 0
         self.returns = []
@@ -85,7 +84,7 @@ class DiamondCollector(gym.Env):
             self.log_returns()
 
         # Get Observation
-        self.obs, self.allow_break_action = self.get_observation(world_state)
+        self.obs = self.get_observation(world_state)
 
         return self.obs
 
@@ -113,7 +112,7 @@ class DiamondCollector(gym.Env):
         world_state = self.agent_host.getWorldState()
         for error in world_state.errors:
             print("Error:", error.text)
-        self.obs, self.allow_break_action = self.get_observation(world_state) 
+        self.obs = self.get_observation(world_state) 
 
         # Get Done
         done = not world_state.is_mission_running 
@@ -154,7 +153,7 @@ class DiamondCollector(gym.Env):
                         <ServerHandlers>
                             <FlatWorldGenerator generatorString="3;7,2;1;"/>
                             <DrawingDecorator>''' + \
-                                "<DrawCuboid x1='{}' x2='{}' y1='2' y2='2' z1='{}' z2='{}' type='air'/>".format(-self.size, self.size, -self.size, self.size) + \
+                                "<DrawCuboid x1='{}' x2='{}' y1='2' y2='3' z1='{}' z2='{}' type='air'/>".format(-self.size, self.size, -self.size, self.size) + \
                                 "<DrawCuboid x1='{}' x2='{}' y1='1' y2='1' z1='{}' z2='{}' type='stone'/>".format(-self.size, self.size, -self.size, self.size) + \
                                 f"{self.get_enemy_xml(*enemy_starting_location)}" + \
                                 '''<DrawBlock x='0'  y='2' z='0' type='air' />
@@ -233,10 +232,8 @@ class DiamondCollector(gym.Env):
 
         Returns
             observation: <np.array> the state observation
-            allow_break_action: <bool> whether the agent is facing a diamond
         """
         obs = np.zeros((2 * self.obs_size * self.obs_size, ))
-        allow_break_action = False
 
         while world_state.is_mission_running:
             time.sleep(0.1)
@@ -264,12 +261,10 @@ class DiamondCollector(gym.Env):
                 elif yaw >= 45 and yaw < 135:
                     obs = np.rot90(obs, k=3, axes=(1, 2))
                 obs = obs.flatten()
-
-                allow_break_action = observations['LineOfSight']['type'] == 'diamond_ore'
                 
                 break
 
-        return obs, allow_break_action
+        return obs
 
     def log_returns(self):
         """
