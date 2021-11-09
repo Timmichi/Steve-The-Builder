@@ -23,7 +23,7 @@ class DiamondCollector(gym.Env):
     def __init__(self, env_config):  
         # Static Parameters
         self.size = 50
-        self.enemy_spawn_distance = 8
+        self.enemy_spawn_distance = 4
         self.obs_size = 5
         self.max_episode_steps = 100
         self.log_frequency = 10
@@ -52,6 +52,9 @@ class DiamondCollector(gym.Env):
             print('ERROR:', e)
             print(self.agent_host.getUsage())
             exit(1)
+
+        # Constants
+        self.player_block = "cobblestone"
 
         # DiamondCollector Parameters
         self.obs = None
@@ -121,7 +124,7 @@ class DiamondCollector(gym.Env):
         for r in world_state.rewards:
             reward += r.getValue()
         self.episode_return += reward
-
+        
         return self.obs, reward, done, dict()
 
     def get_enemy_xml(self, x, y, z) -> str:
@@ -131,9 +134,9 @@ class DiamondCollector(gym.Env):
         return f"<DrawEntity x='{x}' y='{y}' z='{z}' type='{mob_type}'/>"
 
     def get_mission_xml(self):
-        player_block = "cobblestone"
         block_quantity = 63
         enemy_starting_location = (self.enemy_spawn_distance, 1, self.enemy_spawn_distance)
+        time_reward = "<RewardForTimeTaken initialReward='1' delta='1' density='PER_TICK' />"
         return '''<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
                 <Mission xmlns="http://ProjectMalmo.microsoft.com" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
@@ -167,7 +170,7 @@ class DiamondCollector(gym.Env):
                         <AgentStart>
                             <Placement x="0.5" y="2" z="0.5" pitch="45" yaw="0"/>
                             <Inventory>''' + \
-                                f'<InventoryItem slot="0" type="{player_block}" quantity="{block_quantity}"/>' + \
+                                f'<InventoryItem slot="0" type="{self.player_block}" quantity="{block_quantity}"/>' + \
                             '''</Inventory>
                         </AgentStart>
                         <AgentHandlers>
@@ -175,15 +178,15 @@ class DiamondCollector(gym.Env):
                             <ObservationFromFullStats/>
                             <ObservationFromRay/>
                             <ObservationFromGrid>
-                                <Grid name="floorAll">
-                                    <min x="-'''+str(int(self.obs_size/2))+'''" y="-1" z="-'''+str(int(self.obs_size/2))+'''"/>
-                                    <max x="'''+str(int(self.obs_size/2))+'''" y="0" z="'''+str(int(self.obs_size/2))+'''"/>
+                                <Grid name="nearbyVolume">
+                                    <min x="-'''+str(int(self.obs_size/2))+'''" y="0" z="-'''+str(int(self.obs_size/2))+'''"/>
+                                    <max x="'''+str(int(self.obs_size/2))+'''" y="1" z="'''+str(int(self.obs_size/2))+'''"/>
                                 </Grid>
                             </ObservationFromGrid>
                             <AgentQuitFromReachingCommandQuota total="'''+str(self.max_episode_steps)+'''" />
                             <AgentQuitFromTouchingBlockType>
                                 <Block type="bedrock" />
-                            </AgentQuitFromTouchingBlockType>
+                            </AgentQuitFromTouchingBlockType>''' + time_reward + '''
                         </AgentHandlers>
                     </AgentSection>
                 </Mission>'''
@@ -223,8 +226,10 @@ class DiamondCollector(gym.Env):
 
     def get_observation(self, world_state):
         """
-        Use the agent observation API to get a flattened 2 x 5 x 5 grid around the agent. 
+        Use the agent observation API to get a flattened 2 x 5 x 5 grid around the agent.
         The agent is in the center square facing up.
+        Search "<Grid name="nearbyVolume">" in mission XML to find specifics.
+            Note that y is relative to the agent.
 
         Args
             world_state: <object> current agent world state
@@ -246,9 +251,9 @@ class DiamondCollector(gym.Env):
                 observations = json.loads(msg)
 
                 # Get observation
-                grid = observations['floorAll']
+                grid = observations['nearbyVolume']
                 for i, x in enumerate(grid):
-                    obs[i] = x == 'diamond_ore' or x == 'lava'
+                    obs[i] = x == self.player_block
 
                 # Rotate observation with orientation of agent
                 obs = obs.reshape((2, self.obs_size, self.obs_size))
@@ -262,7 +267,7 @@ class DiamondCollector(gym.Env):
                 obs = obs.flatten()
                 
                 break
-
+        
         return obs
 
     def log_returns(self):
