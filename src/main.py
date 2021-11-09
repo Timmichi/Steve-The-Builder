@@ -28,7 +28,6 @@ class DiamondCollector(gym.Env):
         self.max_episode_steps = 100
         self.log_frequency = 10
 
-        # TODO issue: seems like agent is not really looking up or down, and perhaps turn degree not significant enough, or should have more options (like two turn options, 15 and 90 degrees). Issue may be related to post-processing, where yaw or pitch is being reset.
         self.action_dict = {
             0: 'turn 1',  # Turn 90 degrees to the right.
             1: 'turn -1',  # Turn 90 degrees to the left.
