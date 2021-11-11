@@ -6,7 +6,7 @@ title: Status
 Steve the Builder is a project focused on exploring the ways machine learning can be used to control a bot in Minecraft whose main defense against opposing creatures is simply building. The goal is to have the bot create a shelter for itself against different types of enemies and in different kinds of terrains.
 
 ## Approach
-
+Since the first enemy we tested, the "Ghast", only shoots a harmful projectile to the agent every 4~6 seconds, it was evident that some kind of delayed reinforcement learning algorithm would be appropriate. 
 ## Evaluation
 time reward increase over time
 qualitative: seeing agent build to avoid enemies
