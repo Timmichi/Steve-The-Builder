@@ -14,6 +14,8 @@ related notes:
 time reward increase over time
 qualitative: seeing agent build to avoid enemies
 ## Remaining Goals and Challenges
+hill terrain
+different types of enemies
 
 ## Resources Used
 assignment2 was used as the base or starting point for this project.
