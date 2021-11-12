@@ -16,6 +16,7 @@ from numpy.random import randint
 import gym, ray
 from gym.spaces import Discrete, Box
 from ray.rllib.agents import ppo
+from ray.rllib.agents import dqn
 
 
 class DiamondCollector(gym.Env):
@@ -294,12 +295,18 @@ class DiamondCollector(gym.Env):
 
 if __name__ == '__main__':
     ray.init()
-    trainer = ppo.PPOTrainer(env=DiamondCollector, config={
+    trainer = dqn.DQNTrainer(env=DiamondCollector, config={
         'env_config': {},           # No environment parameters to configure
         'framework': 'torch',       # Use pyotrch instead of tensorflow
         'num_gpus': 0,              # We aren't using GPUs
         'num_workers': 0            # We aren't using parallelism
     })
+    """trainer = ppo.PPOTrainer(env=DiamondCollector, config={
+        'env_config': {},           # No environment parameters to configure
+        'framework': 'torch',       # Use pyotrch instead of tensorflow
+        'num_gpus': 0,              # We aren't using GPUs
+        'num_workers': 0            # We aren't using parallelism
+    })"""
 
     while True:
         print(trainer.train())
