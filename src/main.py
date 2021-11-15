@@ -57,12 +57,16 @@ class DiamondCollector(gym.Env):
         # Constants
         self.player_block = "cobblestone"
 
-        # DiamondCollector Parameters
+        # Dynamic Parameters
         self.obs = None
         self.episode_step = 0
         self.episode_return = 0
         self.returns = []
         self.steps = []
+
+        self.last_damage_taken = 0
+        # agent starts looking down
+        self.looking_down = True
 
     def reset(self):
         """
@@ -81,6 +85,8 @@ class DiamondCollector(gym.Env):
         self.episode_return = 0
         self.episode_step = 0
 
+        self.looking_down = True
+
         # Log
         if len(self.returns) > self.log_frequency + 1 and \
             len(self.returns) % self.log_frequency == 0:
@@ -90,6 +96,58 @@ class DiamondCollector(gym.Env):
         self.obs = self.get_observation(world_state)
 
         return self.obs
+
+    def extract_observations(self, world_state):
+        """Returns latest observation dictionary from world state.
+        Returns None if mission is not running or no new observations."""
+        msg = world_state.observations[-1].text
+        observations = json.loads(msg)
+        return observations
+
+    def step_reward_damage(self, world_state) -> int:
+        """Mutates self.last_damage_taken. Returns negative value based on how much damage taken."""
+        if world_state.is_mission_running and \
+        world_state.number_of_observations_since_last_state > 0:
+            observations = self.extract_observations(world_state)
+        else:
+            return 0
+        new_damage_taken = observations['DamageTaken']
+        reward = - ((new_damage_taken - self.last_damage_taken) // 4)
+        self.last_damage_taken = new_damage_taken
+
+        return reward
+
+    def step_reward(self, world_state) -> float:
+        """Mutates self.episode_return (adds on rewards since last world state was taken).
+        Returns rewards since last world state was taken."""
+        reward = 0
+        for r in world_state.rewards:
+            reward += r.getValue()
+
+        reward += self.step_reward_damage(world_state)
+
+        self.episode_return += reward
+
+        return reward
+
+    def step_action(self, action):
+        command = self.action_dict[action]
+
+        # limiting agent to only looking down or up (ground block layer and 1 above that)
+        down_cmd = command == "look 1"
+        up_cmd = command == "look -1"
+        looking_too_far_down = down_cmd and self.looking_down
+        looking_too_far_up = up_cmd and not self.looking_down
+
+        if not (looking_too_far_down or looking_too_far_up):
+            if down_cmd or up_cmd:
+                # if the agent inputs a down command, it must be the case the agent
+                # is not looking down. And vice-versa.
+                self.looking_down = not self.looking_down
+            self.agent_host.sendCommand(command)
+            time.sleep(.2)
+            self.episode_step += 1
+
 
     def step(self, action):
         """
@@ -105,26 +163,19 @@ class DiamondCollector(gym.Env):
             info: <dict> dictionary of extra information
         """
 
-        # Get Action
-        command = self.action_dict[action]
-        self.agent_host.sendCommand(command)
-        time.sleep(.2)
-        self.episode_step += 1
+        self.step_action(action)
 
         # Get Observation
         world_state = self.agent_host.getWorldState()
         for error in world_state.errors:
             print("Error:", error.text)
-        self.obs = self.get_observation(world_state) 
+        self.obs = self.get_observation(world_state)
 
         # Get Done
-        done = not world_state.is_mission_running 
+        done = not world_state.is_mission_running
 
         # Get Reward
-        reward = 0
-        for r in world_state.rewards:
-            reward += r.getValue()
-        self.episode_return += reward
+        reward = self.step_reward(world_state)
         
         return self.obs, reward, done, dict()
 
@@ -248,8 +299,7 @@ class DiamondCollector(gym.Env):
 
             if world_state.number_of_observations_since_last_state > 0:
                 # First we get the json from the observation API
-                msg = world_state.observations[-1].text
-                observations = json.loads(msg)
+                observations = self.extract_observations(world_state)
 
                 # Get observation
                 grid = observations['nearbyVolume']
