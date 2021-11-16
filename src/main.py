@@ -36,10 +36,6 @@ class DiamondCollector(gym.Env):
             3: 'look -1', # Pitch 45 degrees up.
             4: 'use' # Place a block.
         }
-        
-        # Static Parameters from assignment2.py (should remove eventually...)
-        self.reward_density = .1
-        self.penalty_density = .02
 
         # Rllib Parameters
         self.action_space = Discrete(len(self.action_dict))
