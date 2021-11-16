@@ -37,3 +37,6 @@ https://canvas.eee.uci.edu/courses/34142/pages/python-examples-malmo-functionali
 
 Finding and quickly comparing different off-the-shelf algorithms:
 https://docs.ray.io/en/latest/rllib-algorithms.html
+
+HTML to Markdown sheet:
+https://github.com/mundimark/quickrefs/blob/master/HTML.md
