@@ -249,7 +249,7 @@ class DiamondCollector(gym.Env):
         """
         my_mission = MalmoPython.MissionSpec(self.get_mission_xml(), True)
         my_mission_record = MalmoPython.MissionRecordSpec()
-        my_mission.requestVideo(800, 500)
+        my_mission.requestVideo(1200, 720)
         my_mission.setViewpoint(1)
 
         max_retries = 3
