@@ -9,6 +9,7 @@ Steve the Builder is a project focused on exploring the ways machine learning ca
 Find the source code here: https://github.com/Timmichi/Steve-The-Builder
 
 Team:
+
 Nikola Pratte
 
 Raymond Anggono
