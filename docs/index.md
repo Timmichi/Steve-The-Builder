@@ -4,7 +4,7 @@ title:  Home
 ---
 
 <div style=" display=flex; justify-content: center;">
-  <img src="./images/shelter1.jpeg" alt"steve-the-builder" width= "500px">
+  <img src="./images/shelter1.jpeg" alt"steve-the-builder" width= "500px"/>
 </div>
 
 ## Aloha to Steve The Builder Platform!
