@@ -9,6 +9,7 @@ except:
 import sys
 import time
 import json
+from typing import List
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy.random import randint
@@ -21,24 +22,34 @@ from ray.rllib.agents import dqn
 
 class DiamondCollector(gym.Env):
 
-    def __init__(self, env_config):  
+    def __init__(self, env_config):
+        # Problem setup parameters
+        # whether or not the agent is using DiscreteMovementCommands
+        self.discrete_moves = False
+
         # Static Parameters
         self.size = 50
         self.enemy_spawn_distance = 4
         self.obs_size = 5
-        self.max_episode_steps = 100
+        self.max_episode_steps = 100 if self.discrete_moves else 300
         self.log_frequency = 10
 
-        self.action_dict = {
-            0: 'turn 1',  # Turn 90 degrees to the right.
-            1: 'turn -1',  # Turn 90 degrees to the left.
-            2: 'look 1', # Pitch 45 degrees down.
-            3: 'look -1', # Pitch 45 degrees up.
-            4: 'use' # Place a block.
-        }
+        if self.discrete_moves:
+            self.action_dict = {
+                0: 'turn 1',  # Turn 90 degrees to the right.
+                1: 'turn -1',  # Turn 90 degrees to the left.
+                2: 'look 1', # Pitch 45 degrees down.
+                3: 'look -1', # Pitch 45 degrees up.
+                4: 'use' # Place a block.
+            }
 
         # Rllib Parameters
-        self.action_space = Discrete(len(self.action_dict))
+        if self.discrete_moves:
+            self.action_space = Discrete(len(self.action_dict))
+        else:
+            self.action_space = Box(low=np.array([-1.0, -1.0, -1.0]),
+                            high=np.array([1.0, 1.0, 1.0]))
+        
         self.observation_space = Box(0, 1, shape=(2 * self.obs_size * self.obs_size, ), dtype=np.float32)
 
         # Malmo Parameters
@@ -144,6 +155,16 @@ class DiamondCollector(gym.Env):
             time.sleep(.2)
             self.episode_step += 1
 
+    def step_continuous_action(self, action: List[float]) -> None:
+        turn_val, pitch_val, use_val = action
+        use_val = 1 if use_val > 0 else 0
+
+        self.agent_host.sendCommand(f'turn {turn_val}')
+        self.agent_host.sendCommand(f'pitch {pitch_val}')
+        self.agent_host.sendCommand(f'use {use_val}')
+
+        time.sleep(.2)
+        self.episode_step += 1
 
     def step(self, action):
         """
@@ -159,7 +180,10 @@ class DiamondCollector(gym.Env):
             info: <dict> dictionary of extra information
         """
 
-        self.step_action(action)
+        if self.discrete_moves:
+            self.step_action(action)
+        else:
+            self.step_continuous_action(action)
 
         # Get Observation
         world_state = self.agent_host.getWorldState()
@@ -187,7 +211,13 @@ class DiamondCollector(gym.Env):
         z = self.enemy_spawn_distance if randint(2) else -self.enemy_spawn_distance
         enemy_starting_location = (x, 1, z)
 
+        if self.discrete_moves:
+            movement = "<DiscreteMovementCommands/>"
+        else:
+            movement = "<ContinuousMovementCommands/>"
+
         time_reward = "<RewardForTimeTaken initialReward='1' delta='1' density='PER_TICK' />"
+
         return '''<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
                 <Mission xmlns="http://ProjectMalmo.microsoft.com" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
@@ -224,9 +254,9 @@ class DiamondCollector(gym.Env):
                                 f'<InventoryItem slot="0" type="{self.player_block}" quantity="{block_quantity}"/>' + \
                             '''</Inventory>
                         </AgentStart>
-                        <AgentHandlers>
-                            <DiscreteMovementCommands/>
-                            <ObservationFromFullStats/>
+                        <AgentHandlers>''' + \
+                            movement + \
+                            '''<ObservationFromFullStats/>
                             <ObservationFromRay/>
                             <ObservationFromGrid>
                                 <Grid name="nearbyVolume">
@@ -349,18 +379,25 @@ class DiamondCollector(gym.Env):
 
 if __name__ == '__main__':
     ray.init()
-    trainer = dqn.DQNTrainer(env=DiamondCollector, config={
+    # Same as variable in DiamondCollector.
+    # Just testing this for now,
+    # should eventually integrate these two into same global variable.
+    discrete_moves = False
+    
+    if discrete_moves:
+        trainer = dqn.DQNTrainer(env=DiamondCollector, config={
+            'env_config': {},           # No environment parameters to configure
+            'framework': 'torch',       # Use pyotrch instead of tensorflow
+            'num_gpus': 0,              # We aren't using GPUs
+            'num_workers': 0            # We aren't using parallelism
+        })
+    else:
+        trainer = ppo.PPOTrainer(env=DiamondCollector, config={
         'env_config': {},           # No environment parameters to configure
         'framework': 'torch',       # Use pyotrch instead of tensorflow
         'num_gpus': 0,              # We aren't using GPUs
         'num_workers': 0            # We aren't using parallelism
-    })
-    """trainer = ppo.PPOTrainer(env=DiamondCollector, config={
-        'env_config': {},           # No environment parameters to configure
-        'framework': 'torch',       # Use pyotrch instead of tensorflow
-        'num_gpus': 0,              # We aren't using GPUs
-        'num_workers': 0            # We aren't using parallelism
-    })"""
+        })
 
     while True:
         print(trainer.train())
