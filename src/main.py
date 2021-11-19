@@ -183,7 +183,10 @@ class DiamondCollector(gym.Env):
 
     def get_mission_xml(self):
         block_quantity = 63
-        enemy_starting_location = (self.enemy_spawn_distance, 1, self.enemy_spawn_distance)
+        x = self.enemy_spawn_distance if randint(2) else -self.enemy_spawn_distance
+        z = self.enemy_spawn_distance if randint(2) else -self.enemy_spawn_distance
+        enemy_starting_location = (x, 1, z)
+
         time_reward = "<RewardForTimeTaken initialReward='1' delta='1' density='PER_TICK' />"
         return '''<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
                 <Mission xmlns="http://ProjectMalmo.microsoft.com" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
@@ -203,7 +206,7 @@ class DiamondCollector(gym.Env):
                         <ServerHandlers>
                             <FlatWorldGenerator generatorString="3;7,2;1;"/>
                             <DrawingDecorator>''' + \
-                                "<DrawCuboid x1='{}' x2='{}' y1='2' y2='3' z1='{}' z2='{}' type='air'/>".format(-self.size, self.size, -self.size, self.size) + \
+                                "<DrawCuboid x1='{}' x2='{}' y1='2' y2='5' z1='{}' z2='{}' type='air'/>".format(-self.size, self.size, -self.size, self.size) + \
                                 "<DrawCuboid x1='{}' x2='{}' y1='1' y2='1' z1='{}' z2='{}' type='stone'/>".format(-self.size, self.size, -self.size, self.size) + \
                                 f"{self.get_enemy_xml(*enemy_starting_location)}" + \
                                 '''<DrawBlock x='0'  y='2' z='0' type='air' />
@@ -305,6 +308,11 @@ class DiamondCollector(gym.Env):
                 # Rotate observation with orientation of agent
                 obs = obs.reshape((2, self.obs_size, self.obs_size))
                 yaw = observations['Yaw']
+
+                # from https://edstem.org/us/courses/14172/discussion/863158 suggestion in comments
+                if yaw < 0:
+                    yaw += 360
+
                 if yaw >= 225 and yaw < 315:
                     obs = np.rot90(obs, k=1, axes=(1, 2))
                 elif yaw >= 315 or yaw < 45:
