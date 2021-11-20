@@ -15,22 +15,26 @@ import numpy as np
 from numpy.random import randint
 
 import gym, ray
+from numpy.random.mtrand import f
 from gym.spaces import Discrete, Box
 from ray.rllib.agents import ppo
 from ray.rllib.agents import dqn
 
+# Problem setup parameters
+discrete_moves = False
 
-class DiamondCollector(gym.Env):
+
+class SteveTheBuilder(gym.Env):
 
     def __init__(self, env_config):
-        # Problem setup parameters
         # whether or not the agent is using DiscreteMovementCommands
-        self.discrete_moves = False
+        self.discrete_moves = discrete_moves
 
         # Static Parameters
         self.size = 50
         self.enemy_spawn_distance = 4
         self.obs_size = 5
+        self.obs_height = 3
         self.max_episode_steps = 100 if self.discrete_moves else 300
         self.log_frequency = 10
 
@@ -50,7 +54,7 @@ class DiamondCollector(gym.Env):
             self.action_space = Box(low=np.array([-1.0, -1.0, -1.0]),
                             high=np.array([1.0, 1.0, 1.0]))
         
-        self.observation_space = Box(0, 1, shape=(2 * self.obs_size * self.obs_size, ), dtype=np.float32)
+        self.observation_space = Box(0, 1, shape=(self.obs_height * self.obs_size * self.obs_size, ), dtype=np.float32)
 
         # Malmo Parameters
         self.agent_host = MalmoPython.AgentHost()
@@ -218,6 +222,11 @@ class DiamondCollector(gym.Env):
 
         time_reward = "<RewardForTimeTaken initialReward='1' delta='1' density='PER_TICK' />"
 
+        obs_low_y = -1
+        obs_high_y = 1
+
+        assert self.obs_height == obs_high_y - obs_low_y + 1, f"SteveTheBuilder.get_mission_xml: [self.obs_height] value of {self.obs_height} is not equal to {obs_high_y - obs_low_y + 1}, which is [obs_high_y] - [obs_low_y]."
+
         return '''<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
                 <Mission xmlns="http://ProjectMalmo.microsoft.com" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
@@ -247,7 +256,7 @@ class DiamondCollector(gym.Env):
                     </ServerSection>
 
                     <AgentSection mode="Survival">
-                        <Name>CS175DiamondCollector</Name>
+                        <Name>SteveTheBuilder</Name>
                         <AgentStart>
                             <Placement x="0.5" y="2" z="0.5" pitch="45" yaw="0"/>
                             <Inventory>''' + \
@@ -259,10 +268,10 @@ class DiamondCollector(gym.Env):
                             '''<ObservationFromFullStats/>
                             <ObservationFromRay/>
                             <ObservationFromGrid>
-                                <Grid name="nearbyVolume">
-                                    <min x="-'''+str(int(self.obs_size/2))+'''" y="0" z="-'''+str(int(self.obs_size/2))+'''"/>
-                                    <max x="'''+str(int(self.obs_size/2))+'''" y="1" z="'''+str(int(self.obs_size/2))+'''"/>
-                                </Grid>
+                                <Grid name="nearbyVolume">''' + \
+                                    f'<min x="-{str(int(self.obs_size/2))}" y="{obs_low_y}" z="-{str(int(self.obs_size/2))}"/>' + \
+                                    f'<max x="{str(int(self.obs_size/2))}" y="{obs_high_y}" z="{str(int(self.obs_size/2))}"/>' + \
+                                '''</Grid>
                             </ObservationFromGrid>
                             <AgentQuitFromReachingCommandQuota total="'''+str(self.max_episode_steps)+'''" />
                             <AgentQuitFromTouchingBlockType>
@@ -287,7 +296,7 @@ class DiamondCollector(gym.Env):
 
         for retry in range(max_retries):
             try:
-                self.agent_host.startMission( my_mission, my_clients, my_mission_record, 0, 'DiamondCollector' )
+                self.agent_host.startMission( my_mission, my_clients, my_mission_record, 0, 'SteveTheBuilder' )
                 break
             except RuntimeError as e:
                 if retry == max_retries - 1:
@@ -307,7 +316,10 @@ class DiamondCollector(gym.Env):
 
     def get_observation(self, world_state):
         """
-        Use the agent observation API to get a flattened 2 x 5 x 5 grid around the agent.
+        Use the agent observation API to get a flattened 3 x 5 x 5
+        grid around the agent. Dimensions are [self.obs_height]
+        and [self.obs_size], 3 x 5 x 5 may be deprecated.
+
         The agent is in the center square facing up.
         Search "<Grid name="nearbyVolume">" in mission XML to find specifics.
             Note that y is relative to the agent.
@@ -318,7 +330,7 @@ class DiamondCollector(gym.Env):
         Returns
             observation: <np.array> the state observation
         """
-        obs = np.zeros((2 * self.obs_size * self.obs_size, ))
+        obs = np.zeros((self.obs_height * self.obs_size * self.obs_size, ))
 
         while world_state.is_mission_running:
             time.sleep(0.1)
@@ -336,7 +348,7 @@ class DiamondCollector(gym.Env):
                     obs[i] = x == self.player_block
 
                 # Rotate observation with orientation of agent
-                obs = obs.reshape((2, self.obs_size, self.obs_size))
+                obs = obs.reshape((self.obs_height, self.obs_size, self.obs_size))
                 yaw = observations['Yaw']
 
                 # from https://edstem.org/us/courses/14172/discussion/863158 suggestion in comments
@@ -367,7 +379,7 @@ class DiamondCollector(gym.Env):
         returns_smooth = np.convolve(self.returns[1:], box, mode='same')
         plt.clf()
         plt.plot(self.steps[1:], returns_smooth)
-        plt.title('Steve the Builder')
+        plt.title('SteveTheBuilder')
         plt.ylabel('Return')
         plt.xlabel('Steps')
         plt.savefig('returns.png')
@@ -379,20 +391,16 @@ class DiamondCollector(gym.Env):
 
 if __name__ == '__main__':
     ray.init()
-    # Same as variable in DiamondCollector.
-    # Just testing this for now,
-    # should eventually integrate these two into same global variable.
-    discrete_moves = False
     
     if discrete_moves:
-        trainer = dqn.DQNTrainer(env=DiamondCollector, config={
+        trainer = dqn.DQNTrainer(env=SteveTheBuilder, config={
             'env_config': {},           # No environment parameters to configure
             'framework': 'torch',       # Use pyotrch instead of tensorflow
             'num_gpus': 0,              # We aren't using GPUs
             'num_workers': 0            # We aren't using parallelism
         })
     else:
-        trainer = ppo.PPOTrainer(env=DiamondCollector, config={
+        trainer = ppo.PPOTrainer(env=SteveTheBuilder, config={
         'env_config': {},           # No environment parameters to configure
         'framework': 'torch',       # Use pyotrch instead of tensorflow
         'num_gpus': 0,              # We aren't using GPUs
