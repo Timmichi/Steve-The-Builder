@@ -21,19 +21,24 @@ from ray.rllib.agents import ppo
 from ray.rllib.agents import dqn
 
 # Problem setup parameters
-discrete_moves = False
+
+# whether or not the agent is using DiscreteMovementCommands
+discrete_moves = True
+
+# randomly spawn Ghast in four directions around agent (north, west, south, east)
+random_spawn = True
+
 
 
 class SteveTheBuilder(gym.Env):
 
     def __init__(self, env_config):
-        # whether or not the agent is using DiscreteMovementCommands
         self.discrete_moves = discrete_moves
 
         # Static Parameters
         self.size = 50
         self.enemy_spawn_distance = 4
-        self.obs_size = 5
+        self.obs_size = 3
         self.obs_height = 3
         self.max_episode_steps = 100 if self.discrete_moves else 300
         self.log_frequency = 10
@@ -211,8 +216,13 @@ class SteveTheBuilder(gym.Env):
 
     def get_mission_xml(self):
         block_quantity = 63
-        x = self.enemy_spawn_distance if randint(2) else -self.enemy_spawn_distance
-        z = self.enemy_spawn_distance if randint(2) else -self.enemy_spawn_distance
+
+        if random_spawn:
+            x = self.enemy_spawn_distance if randint(2) else -self.enemy_spawn_distance
+            z = self.enemy_spawn_distance if randint(2) else -self.enemy_spawn_distance
+        else:
+            x = self.enemy_spawn_distance
+            z = self.enemy_spawn_distance
         enemy_starting_location = (x, 1, z)
 
         if self.discrete_moves:
@@ -225,13 +235,13 @@ class SteveTheBuilder(gym.Env):
         obs_low_y = -1
         obs_high_y = 1
 
-        assert self.obs_height == obs_high_y - obs_low_y + 1, f"SteveTheBuilder.get_mission_xml: [self.obs_height] value of {self.obs_height} is not equal to {obs_high_y - obs_low_y + 1}, which is [obs_high_y] - [obs_low_y]."
+        assert self.obs_height == obs_high_y - obs_low_y + 1, f"SteveTheBuilder.get_mission_xml: [self.obs_height] value of {self.obs_height} is not equal to {obs_high_y - obs_low_y + 1}, which is [obs_high_y] - [obs_low_y] + 1."
 
         return '''<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
                 <Mission xmlns="http://ProjectMalmo.microsoft.com" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
                     <About>
-                        <Summary>Diamond Collector</Summary>
+                        <Summary>SteveTheBuilder</Summary>
                     </About>
 
                     <ServerSection>
