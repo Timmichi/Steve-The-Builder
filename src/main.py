@@ -26,8 +26,10 @@ from ray.rllib.agents import dqn
 discrete_moves = True
 
 # randomly spawn Ghast in four directions around agent (north, west, south, east)
-random_spawn = True
+random_spawn = False
 
+# reward for placing blocks
+reward_blocks = True
 
 
 class SteveTheBuilder(gym.Env):
@@ -42,6 +44,7 @@ class SteveTheBuilder(gym.Env):
         self.obs_height = 3
         self.max_episode_steps = 100 if self.discrete_moves else 300
         self.log_frequency = 10
+        self.block_quantity = 63
 
         if self.discrete_moves:
             self.action_dict = {
@@ -81,6 +84,7 @@ class SteveTheBuilder(gym.Env):
         self.steps = []
 
         self.last_damage_taken = 0
+        self.last_block_count = 0
         # agent starts looking down
         self.looking_down = True
 
@@ -101,6 +105,7 @@ class SteveTheBuilder(gym.Env):
         self.episode_return = 0
         self.episode_step = 0
 
+        self.last_block_count = 0
         self.looking_down = True
 
         # Log
@@ -120,12 +125,36 @@ class SteveTheBuilder(gym.Env):
         observations = json.loads(msg)
         return observations
 
-    def step_reward_damage(self, world_state) -> int:
-        """Mutates self.last_damage_taken. Returns negative value based on how much damage taken."""
+    def extract_obs_running(self, world_state) -> dict:
+        """Returns the world state's observation dictionary given certain conditions.
+        Returns None if the conditions do not apply."""
         if world_state.is_mission_running and \
         world_state.number_of_observations_since_last_state > 0:
-            observations = self.extract_observations(world_state)
+            return self.extract_observations(world_state)
         else:
+            return None
+
+    def step_reward_blocks(self, world_state) -> int:
+        """Mutates self.last_block_count.
+        Returns positive value based on how many blocks were placed in last iteration."""
+        observations = self.extract_obs_running(world_state)
+        if observations is None or observations['Life'] <= 0:
+            return 0
+        
+        blocks_used = self.block_quantity - observations['InventorySlot_0_size']
+        reward = 0
+
+        if blocks_used > self.last_block_count:
+            reward = blocks_used - self.last_block_count
+            self.last_block_count = blocks_used
+
+        return reward
+
+    def step_reward_damage(self, world_state) -> int:
+        """Mutates self.last_damage_taken.
+        Returns negative value based on how much damage taken."""
+        observations = self.extract_obs_running(world_state)
+        if observations is None:
             return 0
 
         # DamageTaken observation resets only when launchClient.bat is restarted,
@@ -148,6 +177,8 @@ class SteveTheBuilder(gym.Env):
             reward += r.getValue()
 
         reward += self.step_reward_damage(world_state)
+        if reward_blocks:
+            reward += self.step_reward_blocks(world_state)
 
         self.episode_return += reward
         return reward
@@ -221,8 +252,6 @@ class SteveTheBuilder(gym.Env):
         return f"<DrawEntity x='{x}' y='{y}' z='{z}' type='{mob_type}'/>"
 
     def get_mission_xml(self):
-        block_quantity = 63
-
         if random_spawn:
             x = self.enemy_spawn_distance if randint(2) else -self.enemy_spawn_distance
             z = self.enemy_spawn_distance if randint(2) else -self.enemy_spawn_distance
@@ -276,12 +305,13 @@ class SteveTheBuilder(gym.Env):
                         <AgentStart>
                             <Placement x="0.5" y="2" z="0.5" pitch="45" yaw="0"/>
                             <Inventory>''' + \
-                                f'<InventoryItem slot="0" type="{self.player_block}" quantity="{block_quantity}"/>' + \
+                                f'<InventoryItem slot="0" type="{self.player_block}" quantity="{self.block_quantity}"/>' + \
                             '''</Inventory>
                         </AgentStart>
                         <AgentHandlers>''' + \
                             movement + \
                             '''<ObservationFromFullStats/>
+                            <ObservationFromFullInventory/>
                             <ObservationFromRay/>
                             <ObservationFromGrid>
                                 <Grid name="nearbyVolume">''' + \
