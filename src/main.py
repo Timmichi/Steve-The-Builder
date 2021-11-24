@@ -128,8 +128,9 @@ class SteveTheBuilder(gym.Env):
         else:
             return 0
 
-        # DamageTaken observation resets only when launchClient.bat is restarted, so
-        # only calculate reward for it after the first few steps.
+        # DamageTaken observation resets only when launchClient.bat is restarted,
+        # however, self.last_damage_taken resets every time main.py is run,
+        # so only calculate reward for damage taken after the first few steps.
         new_damage_taken = observations['DamageTaken']
         if len(self.steps) <= 1 and self.episode_step < 7:
             reward = 0
