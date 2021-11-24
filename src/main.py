@@ -127,8 +127,14 @@ class SteveTheBuilder(gym.Env):
             observations = self.extract_observations(world_state)
         else:
             return 0
+
+        # DamageTaken observation resets only when launchClient.bat is restarted, so
+        # only calculate reward for it after the first few steps.
         new_damage_taken = observations['DamageTaken']
-        reward = - ((new_damage_taken - self.last_damage_taken) // 4)
+        if len(self.steps) <= 1 and self.episode_step < 7:
+            reward = 0
+        else:
+            reward = - ((new_damage_taken - self.last_damage_taken) // 4)
         self.last_damage_taken = new_damage_taken
 
         return reward
@@ -143,7 +149,6 @@ class SteveTheBuilder(gym.Env):
         reward += self.step_reward_damage(world_state)
 
         self.episode_return += reward
-
         return reward
 
     def step_action(self, action):
