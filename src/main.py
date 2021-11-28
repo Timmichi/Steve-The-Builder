@@ -26,7 +26,7 @@ from ray.rllib.agents import dqn
 discrete_moves = True
 
 # randomly spawn Ghast in four directions around agent (north, west, south, east)
-random_spawn = True
+random_spawn = False
 
 # reward for placing blocks
 reward_blocks = False
@@ -34,7 +34,7 @@ reward_blocks = False
 # compresses the observation space by not giving the agent its yaw value
 # and instead changing the arrangement of nearby blocks to match
 # current yaw value.
-yaw_obs_simplifier = True
+yaw_obs_simplifier = False
 
 
 class SteveTheBuilder(gym.Env):
@@ -401,7 +401,11 @@ class SteveTheBuilder(gym.Env):
                 observations = self.extract_observations(world_state)
 
                 # Get observation
-                grid = observations['nearbyVolume']
+                grid = observations.get('nearbyVolume')
+                # avoid KeyError issue by checking if observations has values.
+                if grid is None:
+                    print(f"Encountered a KeyError issue on step {self.steps[-1]}.")
+                    break
                 for i, x in enumerate(grid):
                     obs[i] = x == self.player_block
 
