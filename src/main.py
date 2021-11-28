@@ -26,10 +26,15 @@ from ray.rllib.agents import dqn
 discrete_moves = True
 
 # randomly spawn Ghast in four directions around agent (north, west, south, east)
-random_spawn = False
+random_spawn = True
 
 # reward for placing blocks
-reward_blocks = True
+reward_blocks = False
+
+# compresses the observation space by not giving the agent its yaw value
+# and instead changing the arrangement of nearby blocks to match
+# current yaw value.
+yaw_obs_simplifier = True
 
 
 class SteveTheBuilder(gym.Env):
@@ -62,7 +67,11 @@ class SteveTheBuilder(gym.Env):
             self.action_space = Box(low=np.array([-1.0, -1.0, -1.0]),
                             high=np.array([1.0, 1.0, 1.0]))
         
-        self.observation_space = Box(0, 1, shape=(self.obs_height * self.obs_size * self.obs_size, ), dtype=np.float32)
+        obs_space_tmp = self.obs_height * self.obs_size * self.obs_size
+        if not yaw_obs_simplifier:
+            obs_space_tmp = obs_space_tmp + 1
+        
+        self.observation_space = Box(0, 1, shape=(obs_space_tmp, ), dtype=np.float32)
 
         # Malmo Parameters
         self.agent_host = MalmoPython.AgentHost()
@@ -376,7 +385,10 @@ class SteveTheBuilder(gym.Env):
         Returns
             observation: <np.array> the state observation
         """
-        obs = np.zeros((self.obs_height * self.obs_size * self.obs_size, ))
+        obs_tmp = self.obs_height * self.obs_size * self.obs_size
+        if not yaw_obs_simplifier:
+            obs_tmp += 1
+        obs = np.zeros((obs_tmp, ))
 
         while world_state.is_mission_running:
             time.sleep(0.1)
@@ -393,24 +405,29 @@ class SteveTheBuilder(gym.Env):
                 for i, x in enumerate(grid):
                     obs[i] = x == self.player_block
 
-                # Rotate observation with orientation of agent
-                obs = obs.reshape((self.obs_height, self.obs_size, self.obs_size))
                 yaw = observations['Yaw']
+                if yaw_obs_simplifier:
+                    # Rotate observation with orientation of agent
+                    obs = obs.reshape((self.obs_height, self.obs_size, self.obs_size))
 
-                # from https://edstem.org/us/courses/14172/discussion/863158 suggestion in comments
-                if yaw < 0:
-                    yaw += 360
+                    # from https://edstem.org/us/courses/14172/discussion/863158 suggestion in comments
+                    if yaw < 0:
+                        yaw += 360
 
-                if yaw >= 225 and yaw < 315:
-                    obs = np.rot90(obs, k=1, axes=(1, 2))
-                elif yaw >= 315 or yaw < 45:
-                    obs = np.rot90(obs, k=2, axes=(1, 2))
-                elif yaw >= 45 and yaw < 135:
-                    obs = np.rot90(obs, k=3, axes=(1, 2))
-                obs = obs.flatten()
+                    if yaw >= 225 and yaw < 315:
+                        obs = np.rot90(obs, k=1, axes=(1, 2))
+                    elif yaw >= 315 or yaw < 45:
+                        obs = np.rot90(obs, k=2, axes=(1, 2))
+                    elif yaw >= 45 and yaw < 135:
+                        obs = np.rot90(obs, k=3, axes=(1, 2))
+
+                    obs = obs.flatten()
+                else:
+                    # make yaw a decimal value so fits inside observation space box.
+                    obs[-1] = yaw/360
                 
                 break
-        
+
         return obs
 
     def log_returns(self):
