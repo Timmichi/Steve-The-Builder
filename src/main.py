@@ -23,7 +23,7 @@ from ray.rllib.agents import dqn
 # Problem setup parameters
 
 # whether or not the agent is using DiscreteMovementCommands
-discrete_moves = False
+discrete_moves = True
 
 # randomly spawn Ghast in four directions around agent (north, west, south, east) only working for flat world terrain.
 random_spawn = False
@@ -32,7 +32,7 @@ random_spawn = False
 reward_blocks = False
 
 # changes terrain (flat vs hill side)
-flat_world = True
+flat_world = False
 
 # compresses the observation space by not giving the agent its yaw value
 # and instead changing the arrangement of nearby blocks to match
@@ -278,7 +278,7 @@ class SteveTheBuilder(gym.Env):
             draw_terrain = "<DrawCuboid x1='{}' x2='{}' y1='2' y2='30' z1='{}' z2='{}' type='air'/>".format(-self.size, self.size, -self.size, self.size)
             for i in range(1, 21):
                 layer_size = 21 - i
-                draw_terrain += f"<DrawCuboid x1='{-layer_size}' x2='{layer_size}' y1='1' y2='{i}' z1='{-layer_size}' z2='{layer_size}' type='stone'/>"
+                draw_terrain += f"<DrawCuboid x1='{-layer_size}' x2='{layer_size}' y1='1' y2='{i}' z1='{-layer_size}' z2='{layer_size}' type='{self.player_block}'/>"
             agent_spawn_y = randint(2, 22)
             agent_spawn_z = 22 - agent_spawn_y
             agent_spawn = f'<Placement x="0" y="{agent_spawn_y}" z="{agent_spawn_z}" pitch="45" yaw="0"/>'
