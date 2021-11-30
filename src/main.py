@@ -426,13 +426,13 @@ class SteveTheBuilder(gym.Env):
                     obs[i] = x == self.player_block
 
                 yaw = observations['Yaw']
+                # from https://edstem.org/us/courses/14172/discussion/863158 suggestion in comments
+                if yaw < 0:
+                    yaw += 360
+
                 if yaw_obs_simplifier:
                     # Rotate observation with orientation of agent
                     obs = obs.reshape((self.obs_height, self.obs_size, self.obs_size))
-
-                    # from https://edstem.org/us/courses/14172/discussion/863158 suggestion in comments
-                    if yaw < 0:
-                        yaw += 360
 
                     if yaw >= 225 and yaw < 315:
                         obs = np.rot90(obs, k=1, axes=(1, 2))
