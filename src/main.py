@@ -23,13 +23,16 @@ from ray.rllib.agents import dqn
 # Problem setup parameters
 
 # whether or not the agent is using DiscreteMovementCommands
-discrete_moves = True
+discrete_moves = False
 
-# randomly spawn Ghast in four directions around agent (north, west, south, east)
+# randomly spawn Ghast in four directions around agent (north, west, south, east) only working for flat world terrain.
 random_spawn = False
 
 # reward for placing blocks
 reward_blocks = False
+
+# changes terrain (flat vs hill side)
+flat_world = True
 
 # compresses the observation space by not giving the agent its yaw value
 # and instead changing the arrangement of nearby blocks to match
@@ -213,7 +216,6 @@ class SteveTheBuilder(gym.Env):
     def step_continuous_action(self, action: List[float]) -> None:
         turn_val, pitch_val, use_val = action
         use_val = 1 if use_val > 0 else 0
-
         self.agent_host.sendCommand(f'turn {turn_val}')
         self.agent_host.sendCommand(f'pitch {pitch_val}')
         self.agent_host.sendCommand(f'use {use_val}')
@@ -261,7 +263,7 @@ class SteveTheBuilder(gym.Env):
         return f"<DrawEntity x='{x}' y='{y}' z='{z}' type='{mob_type}'/>"
 
     def get_mission_xml(self):
-        if random_spawn:
+        if random_spawn and flat_world:
             x = self.enemy_spawn_distance if randint(2) else -self.enemy_spawn_distance
             z = self.enemy_spawn_distance if randint(2) else -self.enemy_spawn_distance
         else:
@@ -269,10 +271,24 @@ class SteveTheBuilder(gym.Env):
             z = self.enemy_spawn_distance
         enemy_starting_location = (x, 1, z)
 
+        if flat_world:
+            draw_terrain = "<DrawCuboid x1='{}' x2='{}' y1='2' y2='5' z1='{}' z2='{}' type='air'/>".format(-self.size, self.size, -self.size, self.size) +  "<DrawCuboid x1='{}' x2='{}' y1='1' y2='1' z1='{}' z2='{}' type='stone'/>".format(-self.size, self.size, -self.size, self.size)
+            agent_spawn = f'<Placement x="0" y="2" z="0" pitch="45" yaw="0"/>'
+        else:
+            draw_terrain = "<DrawCuboid x1='{}' x2='{}' y1='2' y2='30' z1='{}' z2='{}' type='air'/>".format(-self.size, self.size, -self.size, self.size)
+            for i in range(1, 21):
+                layer_size = 21 - i
+                draw_terrain += f"<DrawCuboid x1='{-layer_size}' x2='{layer_size}' y1='1' y2='{i}' z1='{-layer_size}' z2='{layer_size}' type='stone'/>"
+            agent_spawn_y = randint(2, 22)
+            agent_spawn_z = 22 - agent_spawn_y
+            agent_spawn = f'<Placement x="0" y="{agent_spawn_y}" z="{agent_spawn_z}" pitch="45" yaw="0"/>'
+            enemy_starting_location = (x+y for x, y in zip(enemy_starting_location, (1, agent_spawn_y, agent_spawn_z)))
+
         if self.discrete_moves:
             movement = "<DiscreteMovementCommands/>"
         else:
             movement = "<ContinuousMovementCommands/>"
+
 
         time_reward = "<RewardForTimeTaken initialReward='1' delta='1' density='PER_TICK' />"
 
@@ -299,8 +315,7 @@ class SteveTheBuilder(gym.Env):
                         <ServerHandlers>
                             <FlatWorldGenerator generatorString="3;7,2;1;"/>
                             <DrawingDecorator>''' + \
-                                "<DrawCuboid x1='{}' x2='{}' y1='2' y2='5' z1='{}' z2='{}' type='air'/>".format(-self.size, self.size, -self.size, self.size) + \
-                                "<DrawCuboid x1='{}' x2='{}' y1='1' y2='1' z1='{}' z2='{}' type='stone'/>".format(-self.size, self.size, -self.size, self.size) + \
+                                draw_terrain + \
                                 f"{self.get_enemy_xml(*enemy_starting_location)}" + \
                                 '''<DrawBlock x='0'  y='2' z='0' type='air' />
                                 <DrawBlock x='0'  y='1' z='0' type='stone' />
@@ -311,9 +326,9 @@ class SteveTheBuilder(gym.Env):
 
                     <AgentSection mode="Survival">
                         <Name>SteveTheBuilder</Name>
-                        <AgentStart>
-                            <Placement x="0.5" y="2" z="0.5" pitch="45" yaw="0"/>
-                            <Inventory>''' + \
+                        <AgentStart>''' + \
+                            agent_spawn + \
+                            '''<Inventory>''' + \
                                 f'<InventoryItem slot="0" type="{self.player_block}" quantity="{self.block_quantity}"/>' + \
                             '''</Inventory>
                         </AgentStart>
@@ -341,6 +356,7 @@ class SteveTheBuilder(gym.Env):
         Initialize new malmo mission.
         """
         my_mission = MalmoPython.MissionSpec(self.get_mission_xml(), True)
+        # my_mission.forceWorldReset();
         my_mission_record = MalmoPython.MissionRecordSpec()
         my_mission.requestVideo(1200, 720)
         my_mission.setViewpoint(1)
