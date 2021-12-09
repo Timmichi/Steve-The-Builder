@@ -13,12 +13,14 @@ from typing import List
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy.random import randint
+import math
 
 import gym, ray
 from numpy.random.mtrand import f
 from gym.spaces import Discrete, Box
 from ray.rllib.agents import ppo
 from ray.rllib.agents import dqn
+import collections
 
 # Problem setup parameters
 
@@ -29,10 +31,12 @@ discrete_moves = True
 random_spawn = False
 
 # reward for placing blocks
-reward_blocks = False
+reward_blocks = True
 
+# reward for facing ghast
+reward_facing_ghast = True
 # changes terrain (flat vs hill side)
-flat_world = False
+flat_world = True
 
 # compresses the observation space by not giving the agent its yaw value
 # and instead changing the arrangement of nearby blocks to match
@@ -53,7 +57,7 @@ class SteveTheBuilder(gym.Env):
         self.max_episode_steps = 100 if self.discrete_moves else 300
         self.log_frequency = 10
         self.block_quantity = 63
-
+    
         if self.discrete_moves:
             self.action_dict = {
                 0: 'turn 1',  # Turn 90 degrees to the right.
@@ -94,9 +98,12 @@ class SteveTheBuilder(gym.Env):
         self.episode_return = 0
         self.returns = []
         self.steps = []
+        self.fireballs = collections.defaultdict(dict)
+        self.enemy = collections.defaultdict(dict)
 
         self.last_damage_taken = 0
         self.last_block_count = 0
+        self.facing_ghast_reward = 0
         # agent starts looking down
         self.looking_down = True
 
@@ -117,8 +124,11 @@ class SteveTheBuilder(gym.Env):
         self.episode_return = 0
         self.episode_step = 0
 
+        self.facing_ghast_reward = 0
         self.last_block_count = 0
         self.looking_down = True
+
+        self.fireballs.clear()
 
         # Log
         if len(self.returns) > self.log_frequency + 1 and \
@@ -161,6 +171,58 @@ class SteveTheBuilder(gym.Env):
             self.last_block_count = blocks_used
 
         return reward
+    def step_reward_facing_ghast(self,world_state) -> int:
+        # Get Entities observation
+        observations = self.extract_obs_running(world_state)
+        if observations is None:
+            return 0
+        entitySight = observations["entitySight"]
+        found_steve = False
+        found_ghast = False
+
+        for entity in entitySight:
+            id = entity['id']
+            name = entity['name']
+
+            if name == "SteveTheBuilder":
+                x_steve = entity["x"]
+                z_steve = entity["z"]
+                yaw_steve = entity["yaw"]
+                found_steve = True
+            
+            elif name == "Ghast":
+                x_ghast = entity["x"]
+                z_ghast = entity["z"]
+                yaw_ghast = entity["yaw"]
+                found_ghast = True
+        reward = 0
+        if (found_steve and found_ghast):
+            # Find the yaw the agent need to be for looking at the ghast
+            hypothenus_distance = math.sqrt( (x_steve-x_ghast)**2 + (z_steve-z_ghast)**2 )
+            adjacent_distance = abs(x_ghast-x_steve)
+            alpha = math.degrees(math.acos(adjacent_distance/hypothenus_distance))
+            if z_ghast > z_steve:
+                if(x_ghast>x_steve):
+                    yaw = 270 + alpha
+                else:
+                    yaw = 90 - alpha                
+
+            else:
+                if(x_ghast>x_steve):
+                    yaw = 270 - alpha
+                else:
+                    yaw = 90 + alpha      
+            
+            if(yaw<=yaw_steve+70 and yaw>=yaw_steve-70):
+                reward= reward + 2
+                print("looking at ghast")
+            else:
+                reward= reward - 0.5
+                print("not looking at ghast")
+        
+        return reward
+
+
 
     def step_reward_damage(self, world_state) -> int:
         """Mutates self.last_damage_taken.
@@ -187,11 +249,19 @@ class SteveTheBuilder(gym.Env):
         reward = 0
         for r in world_state.rewards:
             reward += r.getValue()
-
+        blocks_placed = False
+        facing_ghast = False
         reward += self.step_reward_damage(world_state)
         if reward_blocks:
+            if self.step_reward_blocks(world_state):
+                blocks_placed = True
             reward += self.step_reward_blocks(world_state)
-
+        if reward_facing_ghast:
+            if self.step_reward_facing_ghast(world_state):
+                facing_ghast = True
+            reward += self.step_reward_facing_ghast(world_state)
+        if blocks_placed and facing_ghast:
+            reward += 2
         self.episode_return += reward
         return reward
 
@@ -259,7 +329,7 @@ class SteveTheBuilder(gym.Env):
     def get_enemy_xml(self, x, y, z) -> str:
         # for mob types, see:
         # https://microsoft.github.io/malmo/0.30.0/Schemas/Types.html#type_EntityTypes
-        mob_type = "Ghast"
+        mob_type = "Ghast"  
         return f"<DrawEntity x='{x}' y='{y}' z='{z}' type='{mob_type}'/>"
 
     def get_mission_xml(self):
@@ -291,7 +361,6 @@ class SteveTheBuilder(gym.Env):
 
 
         time_reward = "<RewardForTimeTaken initialReward='1' delta='1' density='PER_TICK' />"
-
         obs_low_y = -1
         obs_high_y = 1
 
@@ -343,6 +412,10 @@ class SteveTheBuilder(gym.Env):
                                     f'<max x="{str(int(self.obs_size/2))}" y="{obs_high_y}" z="{str(int(self.obs_size/2))}"/>' + \
                                 '''</Grid>
                             </ObservationFromGrid>
+                            <ObservationFromNearbyEntities>
+                                <Range name="entitySight" xrange="15" yrange="25" zrange="50" />
+                            </ObservationFromNearbyEntities>
+                            
                             <AgentQuitFromReachingCommandQuota total="'''+str(self.max_episode_steps)+'''" />
                             <AgentQuitFromTouchingBlockType>
                                 <Block type="bedrock" />
@@ -384,7 +457,10 @@ class SteveTheBuilder(gym.Env):
                 print("\nError:", error.text)
 
         return world_state
+        
 
+            
+            
     def get_observation(self, world_state):
         """
         Use the agent observation API to get a flattened 3 x 5 x 5
@@ -415,9 +491,9 @@ class SteveTheBuilder(gym.Env):
             if world_state.number_of_observations_since_last_state > 0:
                 # First we get the json from the observation API
                 observations = self.extract_observations(world_state)
-
-                # Get observation
+                # Get grid observation
                 grid = observations.get('nearbyVolume')
+
                 # avoid KeyError issue by checking if observations has values.
                 if grid is None:
                     print(f"Encountered a KeyError issue on step {self.steps[-1]}.")
@@ -470,8 +546,7 @@ class SteveTheBuilder(gym.Env):
         with open('returns.txt', 'w') as f:
             for step, value in zip(self.steps[1:], self.returns[1:]):
                 f.write("{}\t{}\n".format(step, value)) 
-
-
+    
 if __name__ == '__main__':
     ray.init()
     
