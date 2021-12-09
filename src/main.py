@@ -22,12 +22,18 @@ from ray.rllib.agents import ppo
 from ray.rllib.agents import dqn
 import collections
 
+from constants import ProblemType
+
 # Problem setup parameters
 
-# whether or not the agent is using DiscreteMovementCommands
-discrete_moves = True
+# changes terrain (flat vs hill side)
+problem_type = ProblemType.hill
 
-# randomly spawn Ghast in four directions around agent (north, west, south, east) only working for flat world terrain.
+# whether or not the agent is using DiscreteMovementCommands
+discrete_moves = False
+
+# randomly spawn Ghast in four directions around agent (north, west, south, east)
+# only working for flat world terrain.
 random_spawn = False
 
 # reward for placing blocks
@@ -36,12 +42,24 @@ reward_blocks = True
 # reward for facing ghast
 reward_facing_ghast = True
 # changes terrain (flat vs hill side)
-flat_world = True
+flat_world = ProblemType.flat
+# reward for placing blocks amount
+reward_mult = 10
 
 # compresses the observation space by not giving the agent its yaw value
 # and instead changing the arrangement of nearby blocks to match
 # current yaw value.
 yaw_obs_simplifier = False
+
+
+# Verify that the parameters will result in an environment that has been
+# configured. Not all combinations of parameters have been set up properly,
+# so this provides a scalable way of avoiding those combinations.
+parameter_not_configured_msg = "{} parameter not configured for current world type. Should be left as: {}."
+if problem_type is ProblemType.flat:
+    pass
+elif problem_type is ProblemType.hill:
+    assert not random_spawn,  parameter_not_configured_msg.format("random_spawn", False)
 
 
 class SteveTheBuilder(gym.Env):
@@ -156,7 +174,7 @@ class SteveTheBuilder(gym.Env):
         else:
             return None
 
-    def step_reward_blocks(self, world_state) -> int:
+    def step_reward_blocks(self, world_state, reward_mult: int = 1) -> int:
         """Mutates self.last_block_count.
         Returns positive value based on how many blocks were placed in last iteration."""
         observations = self.extract_obs_running(world_state)
@@ -167,7 +185,7 @@ class SteveTheBuilder(gym.Env):
         reward = 0
 
         if blocks_used > self.last_block_count:
-            reward = blocks_used - self.last_block_count
+            reward = (blocks_used - self.last_block_count) * reward_mult
             self.last_block_count = blocks_used
 
         return reward
@@ -333,18 +351,23 @@ class SteveTheBuilder(gym.Env):
         return f"<DrawEntity x='{x}' y='{y}' z='{z}' type='{mob_type}'/>"
 
     def get_mission_xml(self):
-        if random_spawn and flat_world:
-            x = self.enemy_spawn_distance if randint(2) else -self.enemy_spawn_distance
-            z = self.enemy_spawn_distance if randint(2) else -self.enemy_spawn_distance
-        else:
+        if problem_type is ProblemType.flat:
+            if random_spawn:
+                x = self.enemy_spawn_distance if randint(2) else -self.enemy_spawn_distance
+                z = self.enemy_spawn_distance if randint(2) else -self.enemy_spawn_distance
+            else:
+                x = self.enemy_spawn_distance
+                z = self.enemy_spawn_distance
+        
+        if problem_type is ProblemType.hill:
             x = self.enemy_spawn_distance
             z = self.enemy_spawn_distance
         enemy_starting_location = (x, 1, z)
 
-        if flat_world:
-            draw_terrain = "<DrawCuboid x1='{}' x2='{}' y1='2' y2='5' z1='{}' z2='{}' type='air'/>".format(-self.size, self.size, -self.size, self.size) +  "<DrawCuboid x1='{}' x2='{}' y1='1' y2='1' z1='{}' z2='{}' type='stone'/>".format(-self.size, self.size, -self.size, self.size)
+        if problem_type is ProblemType.flat:
+            draw_terrain = "<DrawCuboid x1='{}' x2='{}' y1='2' y2='30' z1='{}' z2='{}' type='air'/>".format(-self.size, self.size, -self.size, self.size) +  "<DrawCuboid x1='{}' x2='{}' y1='1' y2='1' z1='{}' z2='{}' type='stone'/>".format(-self.size, self.size, -self.size, self.size)
             agent_spawn = f'<Placement x="0" y="2" z="0" pitch="45" yaw="0"/>'
-        else:
+        elif problem_type is ProblemType.hill:
             draw_terrain = "<DrawCuboid x1='{}' x2='{}' y1='2' y2='30' z1='{}' z2='{}' type='air'/>".format(-self.size, self.size, -self.size, self.size)
             for i in range(1, 21):
                 layer_size = 21 - i

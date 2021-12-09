@@ -4,3 +4,4 @@ malmoutils.py
 returns.png
 returns.txt
 zlib.dll
+*.pyc
