@@ -9,7 +9,7 @@ except:
 import sys
 import time
 import json
-from typing import List
+from typing import List, Optional
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy.random import randint
@@ -41,10 +41,8 @@ reward_blocks = True
 
 # reward for facing ghast
 reward_facing_ghast = True
-# changes terrain (flat vs hill side)
-flat_world = ProblemType.flat
 # reward for placing blocks amount
-reward_mult = 10
+reward_mult = 5
 
 # Compresses the observation space by not giving the agent its yaw value
 # and instead changing the arrangement of nearby blocks to match
@@ -62,6 +60,8 @@ if problem_type is ProblemType.flat:
 elif problem_type is ProblemType.hill:
     assert not random_spawn,  parameter_not_configured_msg.format("random_spawn", False)
 
+if yaw_obs_simplifier:
+    assert reward_facing_ghast, "yaw_obs_simplifier being True prevents any additional observations, including [reward_facing_ghast]."
 
 class SteveTheBuilder(gym.Env):
 
@@ -93,9 +93,7 @@ class SteveTheBuilder(gym.Env):
             self.action_space = Box(low=np.array([-1.0, -1.0, -1.0]),
                             high=np.array([1.0, 1.0, 1.0]))
         
-        obs_space_tmp = self.obs_height * self.obs_size * self.obs_size
-        if not yaw_obs_simplifier:
-            obs_space_tmp = obs_space_tmp + 1
+        obs_space_tmp = self.obs_array_length()
         
         self.observation_space = Box(0, 1, shape=(obs_space_tmp, ), dtype=np.float32)
 
@@ -125,6 +123,18 @@ class SteveTheBuilder(gym.Env):
         self.facing_ghast_reward = 0
         # agent starts looking down
         self.looking_down = True
+
+    
+    def obs_array_length(self):
+        """Returns the length of the observation array."""
+        length = self.obs_height * self.obs_size * self.obs_size
+        if not yaw_obs_simplifier:
+            length += 1
+
+            if reward_facing_ghast:
+                length += 1
+
+        return length
 
     def reset(self):
         """
@@ -190,11 +200,17 @@ class SteveTheBuilder(gym.Env):
             self.last_block_count = blocks_used
 
         return reward
-    def step_reward_facing_ghast(self,world_state) -> int:
+    
+    def is_facing_ghast(self, world_state) -> Optional[bool]:
+        """Whether or not the agent is looking in the direction (left-right plane)
+        of a Ghast.
+        
+        Returns None if unable to find both Steve and the Ghast, or if mission
+        is not running."""
         # Get Entities observation
         observations = self.extract_obs_running(world_state)
         if observations is None:
-            return 0
+            return None
         entitySight = observations["entitySight"]
         found_steve = False
         found_ghast = False
@@ -214,7 +230,7 @@ class SteveTheBuilder(gym.Env):
                 z_ghast = entity["z"]
                 yaw_ghast = entity["yaw"]
                 found_ghast = True
-        reward = 0
+        
         if (found_steve and found_ghast):
             # Find the yaw the agent need to be for looking at the ghast
             hypothenus_distance = math.sqrt( (x_steve-x_ghast)**2 + (z_steve-z_ghast)**2 )
@@ -230,9 +246,17 @@ class SteveTheBuilder(gym.Env):
                 if(x_ghast>x_steve):
                     yaw = 270 - alpha
                 else:
-                    yaw = 90 + alpha      
-            
-            if(yaw<=yaw_steve+70 and yaw>=yaw_steve-70):
+                    yaw = 90 + alpha
+
+            return yaw<=yaw_steve+70 and yaw>=yaw_steve-70
+
+
+    def step_reward_facing_ghast(self,world_state) -> int:
+        reward = 0
+        is_facing = self.is_facing_ghast(world_state)
+
+        if is_facing is not None:
+            if is_facing:
                 reward= reward + 2
                 print("looking at ghast")
             else:
@@ -240,7 +264,6 @@ class SteveTheBuilder(gym.Env):
                 print("not looking at ghast")
         
         return reward
-
 
 
     def step_reward_damage(self, world_state) -> int:
@@ -501,9 +524,7 @@ class SteveTheBuilder(gym.Env):
         Returns
             observation: <np.array> the state observation
         """
-        obs_tmp = self.obs_height * self.obs_size * self.obs_size
-        if not yaw_obs_simplifier:
-            obs_tmp += 1
+        obs_tmp = self.obs_array_length()
         obs = np.zeros((obs_tmp, ))
 
         while world_state.is_mission_running:
@@ -531,6 +552,9 @@ class SteveTheBuilder(gym.Env):
                 if yaw < 0:
                     yaw += 360
 
+                # decrement this by 1 every time used, so no overwriting other information
+                extra_val_index = -1
+
                 if yaw_obs_simplifier:
                     # Rotate observation with orientation of agent
                     obs = obs.reshape((self.obs_height, self.obs_size, self.obs_size))
@@ -545,10 +569,17 @@ class SteveTheBuilder(gym.Env):
                     obs = obs.flatten()
                 else:
                     # make yaw a decimal value so fits inside observation space box.
-                    obs[-1] = yaw/360
-                
-                break
+                    obs[extra_val_index] = yaw/360
+                    extra_val_index -= 1
 
+                    if reward_facing_ghast:
+                        facing_ghast = self.is_facing_ghast(world_state)
+                        if facing_ghast is not None:
+                            obs[extra_val_index] = 1 if facing_ghast else 0
+                            extra_val_index -= 1
+
+                break
+            
         return obs
 
     def log_returns(self):
