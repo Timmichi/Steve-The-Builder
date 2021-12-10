@@ -536,7 +536,7 @@ class SteveTheBuilder(gym.Env):
             if world_state.number_of_observations_since_last_state > 0:
                 # First we get the json from the observation API
                 observations = self.extract_observations(world_state)
-                print(observations)
+
                 # Get grid observation
                 grid = observations.get('nearbyVolume')
 
@@ -573,10 +573,12 @@ class SteveTheBuilder(gym.Env):
                     extra_val_index -= 1
 
                     if reward_facing_ghast:
+                        ghast_index = extra_val_index
+                        extra_val_index -= 1
+                        
                         facing_ghast = self.is_facing_ghast(world_state)
                         if facing_ghast is not None:
-                            obs[extra_val_index] = 1 if facing_ghast else 0
-                            extra_val_index -= 1
+                            obs[ghast_index] = 1 if facing_ghast else 0
 
                 break
             
