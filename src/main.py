@@ -46,9 +46,10 @@ flat_world = ProblemType.flat
 # reward for placing blocks amount
 reward_mult = 10
 
-# compresses the observation space by not giving the agent its yaw value
+# Compresses the observation space by not giving the agent its yaw value
 # and instead changing the arrangement of nearby blocks to match
 # current yaw value.
+# If set to False, this will also provide the agent's pitch value to the agent.
 yaw_obs_simplifier = False
 
 
@@ -514,6 +515,7 @@ class SteveTheBuilder(gym.Env):
             if world_state.number_of_observations_since_last_state > 0:
                 # First we get the json from the observation API
                 observations = self.extract_observations(world_state)
+                print(observations)
                 # Get grid observation
                 grid = observations.get('nearbyVolume')
 
