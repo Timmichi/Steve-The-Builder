@@ -51,6 +51,11 @@ reward_mult = 5
 yaw_obs_simplifier = False
 
 
+# Adds the coordinates of the Ghast to the observation space
+# This will help the agent to learn the position of the Ghast
+# and also with the help of the reward for facing the Ghast
+obs_ghast_coordinate = True
+
 # Verify that the parameters will result in an environment that has been
 # configured. Not all combinations of parameters have been set up properly,
 # so this provides a scalable way of avoiding those combinations.
@@ -95,7 +100,7 @@ class SteveTheBuilder(gym.Env):
         
         obs_space_tmp = self.obs_array_length()
         
-        self.observation_space = Box(0, 1, shape=(obs_space_tmp, ), dtype=np.float32)
+        self.observation_space = Box(-50, 50, shape=(obs_space_tmp, ), dtype=np.float32)
 
         # Malmo Parameters
         self.agent_host = MalmoPython.AgentHost()
@@ -133,6 +138,9 @@ class SteveTheBuilder(gym.Env):
 
             if reward_facing_ghast:
                 length += 1
+            
+            if obs_ghast_coordinate:
+                length +=3 
 
         return length
 
@@ -579,7 +587,22 @@ class SteveTheBuilder(gym.Env):
                         facing_ghast = self.is_facing_ghast(world_state)
                         if facing_ghast is not None:
                             obs[ghast_index] = 1 if facing_ghast else 0
+                        
+                    if obs_ghast_coordinate:
+                        ghast_coordinate = observations["entitySight"]
 
+                        for entity in ghast_coordinate:
+                            if entity['name'] == "Ghast":
+                                obs[extra_val_index] = entity["x"]
+                                extra_val_index -= 1
+
+                                obs[extra_val_index] = entity["y"]
+                                extra_val_index -= 1
+
+                                obs[extra_val_index] = entity["z"]
+                                extra_val_index -= 1
+                                print("coordinates:",entity["x"],entity["y"],entity["z"])
+                                break
                 break
             
         return obs
