@@ -400,7 +400,7 @@ class SteveTheBuilder(gym.Env):
             draw_terrain = "<DrawCuboid x1='{}' x2='{}' y1='2' y2='30' z1='{}' z2='{}' type='air'/>".format(-self.size, self.size, -self.size, self.size) +  "<DrawCuboid x1='{}' x2='{}' y1='1' y2='1' z1='{}' z2='{}' type='stone'/>".format(-self.size, self.size, -self.size, self.size)
             agent_spawn = f'<Placement x="0" y="2" z="0" pitch="45" yaw="0"/>'
         elif problem_type is ProblemType.hill:
-            draw_terrain = "<DrawCuboid x1='{}' x2='{}' y1='2' y2='30' z1='{}' z2='{}' type='air'/>".format(-self.size, self.size, -self.size, self.size)
+            draw_terrain = "<DrawCuboid x1='{}' x2='{}' y1='2' y2='100' z1='{}' z2='{}' type='air'/>".format(-self.size, self.size, -self.size, self.size)
             for i in range(1, 21):
                 layer_size = 21 - i
                 draw_terrain += f"<DrawCuboid x1='{-layer_size}' x2='{layer_size}' y1='1' y2='{i}' z1='{-layer_size}' z2='{layer_size}' type='{self.player_block}'/>"
