@@ -56,6 +56,9 @@ yaw_obs_simplifier = False
 # and also with the help of the reward for facing the Ghast
 obs_ghast_coordinate = True
 
+# Gives the agent observation of its pitch value.
+obs_pitch = True
+
 # Verify that the parameters will result in an environment that has been
 # configured. Not all combinations of parameters have been set up properly,
 # so this provides a scalable way of avoiding those combinations.
@@ -141,6 +144,9 @@ class SteveTheBuilder(gym.Env):
             
             if obs_ghast_coordinate:
                 length +=3 
+            
+            if obs_pitch:
+                length += 1
 
         return length
 
@@ -606,8 +612,13 @@ class SteveTheBuilder(gym.Env):
                                 extra_val_index -= 1
                                 print("coordinates:",entity["x"],entity["y"],entity["z"])
                                 break
+
+                    if obs_pitch:
+                        pitch = observations["Pitch"]
+
+                        obs[extra_val_index] = pitch/90
+                        extra_val_index -= 1
                 break
-            
         return obs
 
     def log_returns(self):
