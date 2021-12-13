@@ -272,10 +272,10 @@ class SteveTheBuilder(gym.Env):
         if is_facing is not None:
             if is_facing:
                 reward= reward + 2
-                print("looking at ghast")
+                #print("looking at ghast")
             else:
                 reward= reward - 0.5
-                print("not looking at ghast")
+                #print("not looking at ghast")
         
         return reward
 
@@ -610,7 +610,7 @@ class SteveTheBuilder(gym.Env):
 
                                 obs[extra_val_index] = entity["z"]/2
                                 extra_val_index -= 1
-                                print("coordinates:",entity["x"],entity["y"],entity["z"])
+                                #print("coordinates:",entity["x"],entity["y"],entity["z"])
                                 break
 
                     if obs_pitch:
