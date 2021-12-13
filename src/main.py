@@ -602,13 +602,13 @@ class SteveTheBuilder(gym.Env):
 
                         for entity in ghast_coordinate:
                             if entity['name'] == "Ghast":
-                                obs[extra_val_index] = entity["x"]
+                                obs[extra_val_index] = entity["x"]/2
                                 extra_val_index -= 1
 
-                                obs[extra_val_index] = entity["y"]
+                                obs[extra_val_index] = entity["y"]/2
                                 extra_val_index -= 1
 
-                                obs[extra_val_index] = entity["z"]
+                                obs[extra_val_index] = entity["z"]/2
                                 extra_val_index -= 1
                                 print("coordinates:",entity["x"],entity["y"],entity["z"])
                                 break
