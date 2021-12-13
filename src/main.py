@@ -59,6 +59,8 @@ obs_ghast_coordinate = True
 # Gives the agent observation of its pitch value.
 obs_pitch = True
 
+mob_type = "Ghast"
+
 # Verify that the parameters will result in an environment that has been
 # configured. Not all combinations of parameters have been set up properly,
 # so this provides a scalable way of avoiding those combinations.
@@ -239,7 +241,7 @@ class SteveTheBuilder(gym.Env):
                 yaw_steve = entity["yaw"]
                 found_steve = True
             
-            elif name == "Ghast":
+            elif name == mob_type:
                 x_ghast = entity["x"]
                 z_ghast = entity["z"]
                 yaw_ghast = entity["yaw"]
@@ -385,8 +387,8 @@ class SteveTheBuilder(gym.Env):
     def get_enemy_xml(self, x, y, z) -> str:
         # for mob types, see:
         # https://microsoft.github.io/malmo/0.30.0/Schemas/Types.html#type_EntityTypes
-        mob_type = "Ghast"  
-        return f"<DrawEntity x='{x}' y='{y}' z='{z}' type='{mob_type}'/>"
+        mob_type_xml = mob_type  
+        return f"<DrawEntity x='{x}' y='{y}' z='{z}' type='{mob_type_xml}'/>"
 
     def get_mission_xml(self):
         if problem_type is ProblemType.flat:
@@ -597,11 +599,16 @@ class SteveTheBuilder(gym.Env):
                         if facing_ghast is not None:
                             obs[ghast_index] = 1 if facing_ghast else 0
                         
+                    # TODO coordinate code probably needs to be relative to the agent.
+                    # Imagine if the Ghast is in a certain location. The agent
+                    # could be in many different locations relatively, and this changes
+                    # the situation pretty drastically. However, there is no change
+                    # in observation.
                     if obs_ghast_coordinate:
                         ghast_coordinate = observations["entitySight"]
 
                         for entity in ghast_coordinate:
-                            if entity['name'] == "Ghast":
+                            if entity['name'] == mob_type:
                                 obs[extra_val_index] = entity["x"]/2
                                 extra_val_index -= 1
 
