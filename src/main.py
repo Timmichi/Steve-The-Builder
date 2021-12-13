@@ -103,7 +103,7 @@ class SteveTheBuilder(gym.Env):
         
         obs_space_tmp = self.obs_array_length()
         
-        self.observation_space = Box(-50, 50, shape=(obs_space_tmp, ), dtype=np.float32)
+        self.observation_space = Box(-self.size * 2, self.size * 2, shape=(obs_space_tmp, ), dtype=np.float32)
 
         # Malmo Parameters
         self.agent_host = MalmoPython.AgentHost()
