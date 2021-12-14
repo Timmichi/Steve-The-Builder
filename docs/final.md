@@ -39,11 +39,24 @@ We combined these various approaches, after testing them on the prototype proble
 
 ## Evaluation
 
+For our project, we kept track of three main factors for our evaluation: blocks placed, damage taken, and blocks placed while looking at Ghast. We wanted to evaluate how each factor contributed to our best case scenario.
+
+At the end of each episode, we recorded each factor separately, by appending the block_count, damage_taken, facing_ghast_count, and correct_position_count to an array we would use to display the graphs below. For each evaluation, the left image is on flat terrain and the right image is on hilly terrain. All images are using continuous commands.
+
+The number of blocks placed every 300 steps is showcased below. For flat terrain, we can see there is a gradual increase in the number of blocks placed. However, for hilly terrain, our agent mostly struggled to place blocks even after reaching 20000 episodes. We think this is because it is difficult for the agent to place blocks on hilly terrain, as it has to pitch its head at more extreme angles to build blocks below it.
+![](images/Flat/blocks.png) ![](images/Hill/blocks.png)
+
+The amount of damage taken every 300 steps is showcased below. For flat terain, there are far more instances where the agent takes less damage compared to hilly terrain. Although our agent takes the maximum damage/dies during an episode quite often, both graphs show a decrease in the amount of damage taken over time, with the agent taking less damage more consistently after reaching 20000 episodes.
+![](images/Flat/damage.png) ![](images/Hill/damage.png)
+
+The amount of blocks placed while facing the ghast every 300 steps is showcased below. For flat terrain, similar to the number of blocks placed in general, there is a clear gradual increase in the number of blocks placed while facing the ghast. Although, the same situation arises on hilly terrain for blocks placed in general and blocks placed while facing the ghast: our agent struggles to set the blocks, and as a result there isn't much improvement in this area.
+![](images/Flat/correctPosition.png) ![](images/Hill/correctPosition.png)
+
 ## References
 
 assignment2 was used as the base or starting point for this project.
 
-For examples on how the documentation is converted to code: [https://github.com/Microsoft/malmo/tree/master/Malmo/samples/Python_examples](https://github.com/Microsoft/malmo/tree/master/Malmo/samples/Python_examples) 
+For examples on how the documentation is converted to code: [https://github.com/Microsoft/malmo/tree/master/Malmo/samples/Python_examples](https://github.com/Microsoft/malmo/tree/master/Malmo/samples/Python_examples)
 
 Learning what commands can be inputted to Malmo: [https://microsoft.github.io/malmo/0.30.0/Schemas/MissionHandlers.html#type_DiscreteMovementCommand](https://microsoft.github.io/malmo/0.30.0/Schemas/MissionHandlers.html#type_DiscreteMovementCommand)
 
