@@ -665,7 +665,7 @@ class SteveTheBuilder(gym.Env):
         
         # Damage Taken Graph
         plt.clf()
-        plt.plot(self.steps[1:], self.episode_damage_taken[1:])
+        plt.plot(self.steps[1:], self.damage_taken[1:])
         plt.title('SteveTheBuilder')
         plt.ylabel('Damage Taken')
         plt.xlabel('Steps')
