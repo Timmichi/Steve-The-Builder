@@ -18,7 +18,9 @@ The project relates to Minecraft as there are many different kinds of enemies th
 ## Approaches
 
 The prototype problem we used had a Ghast; a hostile, unmoving, ranged fireball-throwing creature; spawn near the agent. The agent's goal was to build a shelter to defend itself from the Ghast. Our baseline approach involved giving the agent a positive reward for each tick (there are 20 ticks a second in Minecraft) it survived and a negative reward when it took damage, proportional to how much damage it took. The agent could observe blocks around it in a 2 x 5 x 5 grid, where the 2 is the y-coordinate (the same plane as the agent's height). The action space included turning left or right, looking up or down, and placing blocks. Movements were "discrete", as in the agent could only decide to turn 90 degrees or look up or down 45 degrees at a time. The agent used the deep Q learning algorithm provided by the RLlib library. This algorithm was used since the environment is relatively static (only the agent is moving) and there are a low number of states, since it just considers what blocks are near the agent. This baseline performed pretty well, achieving pretty high scores consistently by the 14k steps mark.
-![Baseline agent masters the challenge by around 14k steps, consistently getting close to the maximum allowable reward.](images/BaselineApproach.png)
+<div style=" display=flex; justify-content: center;">
+  <img src="./images/BaselineApproach.png" alt="Baseline agent masters the challenge by around 14k steps, consistently getting close to the maximum allowable reward." width = "550"/>
+</div>
 
 The baseline approach worked well enough for our initial prototype problem, so we looked for greater challenges. First off, we changed movement commands to be continuous, meaning that the agent could decide how much to turn left or right, instead of only being able to turn 90 degrees in either direction. To accomodate this, since deep Q learning does not allow for continuous actions, we used the proximal policy optimization algorithm that came with assignment2. We felt that there were enough challenges to solve in determining useful reward and observation metrics, so our efforts focused more on that.
 
@@ -44,16 +46,27 @@ For our project, we kept track of three main factors for our evaluation: blocks 
 At the end of each episode, we recorded each factor separately, by appending the block_count, damage_taken, facing_ghast_count, and correct_position_count to an array we would use to display the graphs below. For each evaluation, the top image is on flat terrain and the bottom image is on hilly terrain. All images are using continuous commands.
 
 The number of blocks placed every 300 steps is showcased below. For flat terrain, we can see there is a gradual increase in the number of blocks placed. However, for hilly terrain, our agent mostly struggled to place blocks even after reaching 20000 episodes. We think this is because it is difficult for the agent to place blocks on hilly terrain, as it has to pitch its head at more extreme angles to build blocks below it.
-![](images/Flat/blocks.png)
-![](images/hill/blocks.png)
-
+<div style=" display=flex; justify-content: center;">
+  <img src="./images/Flat/blocks.png" alt="" width = "550"/>
+</div>
+<div style=" display=flex; justify-content: center;">
+  <img src="./images/hill/blocks.png" alt="" width = "550"/>
+</div>
 The amount of damage taken every 300 steps is showcased below. For flat terain, there are far more instances where the agent takes less damage compared to hilly terrain. Although our agent takes the maximum damage/dies during an episode quite often, both graphs show a decrease in the amount of damage taken over time, with the agent taking less damage more consistently after reaching 20000 episodes.
-![](images/Flat/damage.png)
-![](images/hill/damage.png)
+<div style=" display=flex; justify-content: center;">
+  <img src="./images/Flat/damage.png" alt="" width = "550"/>
+</div>
+<div style=" display=flex; justify-content: center;">
+  <img src="./images/hill/damage.png" alt="" width = "550"/>
+</div>
 
 The amount of blocks placed while facing the ghast every 300 steps is showcased below. For flat terrain, there is a clear gradual increase in the number of blocks placed while facing the ghast. Although, the same situation arises on hilly terrain for blocks placed in general and blocks placed while facing the ghast: our agent struggles to set the blocks, and as a result there isn't much improvement in this area.
-![](images/Flat/correctPosition.png)
-![](images/hill/correctPosition.png)
+<div style=" display=flex; justify-content: center;">
+  <img src="./images/Flat/correctPosition.png" alt="" width = "550"/>
+</div>
+<div style=" display=flex; justify-content: center;">
+  <img src="./images/hill/correctPosition.png" alt="" width = "550"/>
+</div>
 
 ## References
 
