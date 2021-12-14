@@ -17,7 +17,7 @@ Our current implementation uses a limited, discrete action space and observation
 ## Evaluation
 Our main way of evaluating the agent is seeing how long it survives against the Ghast. This can be measured quantitatively, although, it can also be seen qualitatively if we see the Ghast can no longer see the agent or its fireballs no longer reach the agent (Ghasts cannot move). We think this makes sense because the main point of the shelter is for the agent to survive longer.
 
-![Graph showing reward increasing steadily as the agent takes more steps.](./images/2021-11-15returns.png)
+![Graph showing reward increasing steadily as the agent takes more steps.](./images/BaselineApproach.png)
 
 In the graph provided, one can see that the agent gradually survives longer during the challenge than when it started, by a significant degree. Note that this graph also includes negative rewards the agent incurs from taking damage from the Ghast. This tends to correlate with survival time, as if the agent is taking a lot of damage they probably will not survive that long. We think big dip around the 22k steps mark was the agent experimenting with some new ideas, it seemed to be trying to avoid building an L shape at the beginning of the episode.
 

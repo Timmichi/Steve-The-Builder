@@ -39,17 +39,17 @@ We combined these various approaches, after testing them on the prototype proble
 
 assignment2 was used as the base or starting point for this project.
 
-[For examples on how the documentation is converted to code](https://github.com/Microsoft/malmo/tree/master/Malmo/samples/Python_examples)
+For examples on how the documentation is converted to code: [https://github.com/Microsoft/malmo/tree/master/Malmo/samples/Python_examples](https://github.com/Microsoft/malmo/tree/master/Malmo/samples/Python_examples) 
 
-[Learning what commands can be inputted to Malmo](https://microsoft.github.io/malmo/0.30.0/Schemas/MissionHandlers.html#type_DiscreteMovementCommand)
+Learning what commands can be inputted to Malmo: [https://microsoft.github.io/malmo/0.30.0/Schemas/MissionHandlers.html#type_DiscreteMovementCommand](https://microsoft.github.io/malmo/0.30.0/Schemas/MissionHandlers.html#type_DiscreteMovementCommand)
 
-[Malmo documentation](https://microsoft.github.io/malmo/0.30.0/Schemas/Mission.html)
+Malmo documentation: [https://microsoft.github.io/malmo/0.30.0/Schemas/Mission.html](https://microsoft.github.io/malmo/0.30.0/Schemas/Mission.html)
 
-[A map of specific features to the official Python examples that contain them](https://canvas.eee.uci.edu/courses/34142/pages/python-examples-malmo-functionality)
+A map of specific features to the official Python examples that contain them: [https://canvas.eee.uci.edu/courses/34142/pages/python-examples-malmo-functionality](https://canvas.eee.uci.edu/courses/34142/pages/python-examples-malmo-functionality)
 
-[Finding and quickly comparing different off-the-shelf algorithms](https://docs.ray.io/en/latest/rllib-algorithms.html)
+Finding and quickly comparing different off-the-shelf algorithms [https://docs.ray.io/en/latest/rllib-algorithms.html](https://docs.ray.io/en/latest/rllib-algorithms.html)
 
-[HTML to Markdown sheet](https://github.com/mundimark/quickrefs/blob/master/HTML.md)
+HTML to Markdown sheet: [https://github.com/mundimark/quickrefs/blob/master/HTML.md](https://github.com/mundimark/quickrefs/blob/master/HTML.md)
 
 ## Footnotes
 
