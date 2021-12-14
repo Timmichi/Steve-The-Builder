@@ -310,11 +310,12 @@ class SteveTheBuilder(gym.Env):
         # however, self.last_damage_taken resets every time main.py is run,
         # so only calculate reward for damage taken after the first few steps.
         new_damage_taken = observations['DamageTaken']
-        self.episode_damage_taken = new_damage_taken - self.last_damage_taken
+        self.episode_damage_taken += (new_damage_taken - self.last_damage_taken)
+        
         if len(self.steps) <= 1 and self.episode_step < 7:
             reward = 0
         else:
-            reward = - ((self.episode_damage_taken) // 4)
+            reward = - ((new_damage_taken - self.last_damage_taken) // 4)
         self.last_damage_taken = new_damage_taken
 
         return reward
@@ -665,7 +666,7 @@ class SteveTheBuilder(gym.Env):
         
         # Damage Taken Graph
         plt.clf()
-        plt.plot(self.steps[1:], self.damage_taken[1:])
+        plt.plot(self.steps[2:], self.damage_taken[2:])
         plt.title('SteveTheBuilder')
         plt.ylabel('Damage Taken')
         plt.xlabel('Steps')
