@@ -123,14 +123,24 @@ class SteveTheBuilder(gym.Env):
         self.obs = None
         self.episode_step = 0
         self.episode_return = 0
+
+        # Data to be keep tracked
         self.returns = []
         self.steps = []
+        self.face_ghast_count = []
+        self.blocks_placed = []
+        self.damage_taken = []
+        self.correct_position_block = []
+
         self.fireballs = collections.defaultdict(dict)
         self.enemy = collections.defaultdict(dict)
 
         self.last_damage_taken = 0
         self.last_block_count = 0
-        self.facing_ghast_reward = 0
+        self.last_facing_ghast_count = 0
+        self.last_correct_position_block = 0
+        self.episode_damage_taken = 0
+
         # agent starts looking down
         self.looking_down = True
 
@@ -162,17 +172,23 @@ class SteveTheBuilder(gym.Env):
         # Reset Malmo
         world_state = self.init_malmo()
 
-        # Reset Variables
+        # Append episodes data that was tracked
         self.returns.append(self.episode_return)
+        self.damage_taken.append(self.episode_damage_taken)
+        self.blocks_placed.append(self.last_block_count)
+        self.face_ghast_count.append(self.last_facing_ghast_count)
+        self.correct_position_block.append(self.last_correct_position_block)
         current_step = self.steps[-1] if len(self.steps) > 0 else 0
         self.steps.append(current_step + self.episode_step)
+
+        # Reset Variables
         self.episode_return = 0
         self.episode_step = 0
-
-        self.facing_ghast_reward = 0
+        self.last_correct_position_block = 0
+        self.last_facing_ghast_count = 0
         self.last_block_count = 0
         self.looking_down = True
-
+        self.episode_damage_taken = 0
         self.fireballs.clear()
 
         # Log
@@ -274,6 +290,7 @@ class SteveTheBuilder(gym.Env):
         if is_facing is not None:
             if is_facing:
                 reward= reward + 2
+                self.last_facing_ghast_count = self.last_facing_ghast_count + 1
                 #print("looking at ghast")
             else:
                 reward= reward - 0.5
@@ -293,10 +310,11 @@ class SteveTheBuilder(gym.Env):
         # however, self.last_damage_taken resets every time main.py is run,
         # so only calculate reward for damage taken after the first few steps.
         new_damage_taken = observations['DamageTaken']
+        self.episode_damage_taken = new_damage_taken - self.last_damage_taken
         if len(self.steps) <= 1 and self.episode_step < 7:
             reward = 0
         else:
-            reward = - ((new_damage_taken - self.last_damage_taken) // 4)
+            reward = - ((self.episode_damage_taken) // 4)
         self.last_damage_taken = new_damage_taken
 
         return reward
@@ -319,6 +337,7 @@ class SteveTheBuilder(gym.Env):
                 facing_ghast = True
             reward += self.step_reward_facing_ghast(world_state)
         if blocks_placed and facing_ghast:
+            self.last_correct_position_block += 1
             reward += 2
         self.episode_return += reward
         return reward
@@ -636,6 +655,39 @@ class SteveTheBuilder(gym.Env):
             steps (list): list of global steps after each episode
             returns (list): list of total return of each episode
         """
+        # Plot Blocks Placed Graph
+        plt.clf()
+        plt.plot(self.steps[1:], self.blocks_placed[1:])
+        plt.title('SteveTheBuilder')
+        plt.ylabel('Number Of Blocks Placed')
+        plt.xlabel('Steps')
+        plt.savefig('blocks.png')
+        
+        # Damage Taken Graph
+        plt.clf()
+        plt.plot(self.steps[1:], self.episode_damage_taken[1:])
+        plt.title('SteveTheBuilder')
+        plt.ylabel('Damage Taken')
+        plt.xlabel('Steps')
+        plt.savefig('damage.png')
+
+        # Face Ghast Graph
+        plt.clf()
+        plt.plot(self.steps[1:], self.face_ghast_count[1:])
+        plt.title('SteveTheBuilder')
+        plt.ylabel('Number Of Blocks Placed')
+        plt.xlabel('Steps')
+        plt.savefig('faceGhast.png')
+
+        # Correct position of block
+        plt.clf()
+        plt.plot(self.steps[1:], self.correct_position_block[1:])
+        plt.title('SteveTheBuilder')
+        plt.ylabel('Correct position of block')
+        plt.xlabel('Steps')
+        plt.savefig('correctPosition.png')
+
+        # Plot Rewards Graphs
         box = np.ones(self.log_frequency) / self.log_frequency
         returns_smooth = np.convolve(self.returns[1:], box, mode='same')
         plt.clf()

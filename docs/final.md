@@ -4,7 +4,9 @@ title: Final Report
 ---
 
 ## Project Video
-{Youtube video link goes here}
+
+<iframe src="https://spark.adobe.com/video/N6nPyeY2ELnsa/embed"  width="800" height="540" frameborder="0" allowfullscreen></iframe>
+
 ## Project Summary
 
 Our goal is to have our agent, Steve[<sup>1</sup>](#footnote), protect himself for as long as possible against a Ghast/multiple Ghasts by building a shelter-like block structure. A Ghast is a floating ghost-like hostile mob that shoots explosive fireballs at the player every three seconds. The Ghast is an ideal enemy for this project because it can shoot from multiple directions and angles. This sort of behavior from the Ghast, juxtaposed with the use of reinforcement learning, will allow Steve to learn how to build a more robust structure. Because minecraft is not flat, and can have hilly terrain, we also tested Steve's building potential in varying environments.
@@ -37,23 +39,17 @@ We combined these various approaches, after testing them on the prototype proble
 
 assignment2 was used as the base or starting point for this project.
 
-For examples on how the documentation is converted to code:
-https://github.com/Microsoft/malmo/tree/master/Malmo/samples/Python_examples
+[For examples on how the documentation is converted to code](https://github.com/Microsoft/malmo/tree/master/Malmo/samples/Python_examples)
 
-Learning what commands can be inputted to Malmo:
-https://microsoft.github.io/malmo/0.30.0/Schemas/MissionHandlers.html#type_DiscreteMovementCommand
+[Learning what commands can be inputted to Malmo](https://microsoft.github.io/malmo/0.30.0/Schemas/MissionHandlers.html#type_DiscreteMovementCommand)
 
-Malmo documentation:
-https://microsoft.github.io/malmo/0.30.0/Schemas/Mission.html
+[Malmo documentation](https://microsoft.github.io/malmo/0.30.0/Schemas/Mission.html)
 
-A map of specific features to the official Python examples that contain them:
-https://canvas.eee.uci.edu/courses/34142/pages/python-examples-malmo-functionality
+[A map of specific features to the official Python examples that contain them](https://canvas.eee.uci.edu/courses/34142/pages/python-examples-malmo-functionality)
 
-Finding and quickly comparing different off-the-shelf algorithms:
-https://docs.ray.io/en/latest/rllib-algorithms.html
+[Finding and quickly comparing different off-the-shelf algorithms](https://docs.ray.io/en/latest/rllib-algorithms.html)
 
-HTML to Markdown sheet:
-https://github.com/mundimark/quickrefs/blob/master/HTML.md
+[HTML to Markdown sheet](https://github.com/mundimark/quickrefs/blob/master/HTML.md)
 
 ## Footnotes
 
